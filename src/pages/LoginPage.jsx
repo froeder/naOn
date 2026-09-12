@@ -46,10 +46,6 @@ export default function LoginPage() {
     } finally { setLoading(false); }
   };
 
-  const handleGuest = async () => {
-    clearMessages();
-    try {
-      setLoading(true);
   const handleGoogleLogin = async () => {
     clearMessages();
     try {
@@ -62,11 +58,16 @@ export default function LoginPage() {
     }
   };
 
-
+  const handleGuest = async () => {
+    clearMessages();
+    try {
+      setLoading(true);
       await loginAnonymously();
     } catch (err) {
       setErrorMessage(mapAuthError(err.code || err.message));
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

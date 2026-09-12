@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from 'firebase/app';
+﻿import { initializeApp, getApps } from 'firebase/app';
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -8,6 +8,8 @@ import {
   signInAnonymously,
   sendPasswordResetEmail,
   updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -25,7 +27,6 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 
-// Configuração lida das variáveis de ambiente do Vite (.env)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
@@ -38,7 +39,6 @@ const firebaseConfig = {
 
 const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID?.trim() || undefined;
 
-// Verifica se as credenciais foram fornecidas
 export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey &&
   firebaseConfig.apiKey !== 'SUA_API_KEY_AQUI' &&
@@ -48,25 +48,27 @@ export const isFirebaseConfigured = Boolean(
 let app = null;
 let auth = null;
 let db = null;
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 if (isFirebaseConfigured) {
   try {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
     db = getFirestore(app, databaseId);
-    console.log('✅ Firebase inicializado com sucesso.');
+    console.log('Firebase OK');
   } catch (error) {
-    console.warn('⚠️ Erro ao inicializar Firebase real, alternando para modo local offline:', error);
+    console.error('Firebase error:', error);
   }
 } else {
-  console.info('ℹ️ Firebase não configurado no .env. O aplicativo está operando no modo demonstração com persistência local.');
+  console.warn('Firebase nao configurado');
 }
 
 export {
-  app,
   auth,
   db,
-  // Auth helpers
+  googleProvider,
+  signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -74,7 +76,6 @@ export {
   signInAnonymously,
   sendPasswordResetEmail,
   updateProfile,
-  // Firestore helpers
   collection,
   doc,
   getDocs,

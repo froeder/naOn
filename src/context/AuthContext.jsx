@@ -9,6 +9,9 @@ import {
   signInAnonymously,
   sendPasswordResetEmail,
   updateProfile,
+  googleProvider,
+  signInWithPopup,
+
 } from '../services/firebase';
 
 const AuthContext = createContext(null);
@@ -30,6 +33,13 @@ export const mapAuthError = (code) => {
     case 'auth/too-many-requests':
       return 'Muitas tentativas. Aguarde um instante.';
     case 'auth/network-request-failed':
+    case 'auth/popup-closed-by-user':
+      return 'Janela de login com Google fechada antes de concluir.';
+    case 'auth/popup-blocked':
+      return 'O navegador bloqueou a janela pop-up do Google.';
+    case 'auth/account-exists-with-different-credential':
+      return 'Já existe uma conta com este e-mail vinculada a outro método.';
+
       return 'Sem conexão com a internet.';
     default:
       return code || 'Erro na autenticação. Tente novamente.';
@@ -99,6 +109,18 @@ export function AuthProvider({ children }) {
     const mock = { uid: 'u-' + Date.now(), displayName: name?.trim() || email.split('@')[0], email: email.trim(), photoURL: null, isAnonymous: false, joinedAt: new Date().toISOString() };
     setUser(mock);
     localStorage.setItem('naon_user_auth', JSON.stringify(mock));
+  const loginWithGoogle = async () => {
+    if (!isFirebaseConfigured || !auth) {
+      throw new Error('Firebase não está configurado.');
+    }
+    const cred = await signInWithPopup(auth, googleProvider);
+    const userData = formatUserData(cred.user);
+    setUser(userData);
+    localStorage.setItem('naon_user_session', JSON.stringify(userData));
+    return cred.user;
+  };
+
+
     return mock;
   };
 
@@ -128,6 +150,8 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.error(e);
     } finally {
+    loginWithGoogle,
+
       setUser(null);
       localStorage.removeItem('naon_user_auth');
     }

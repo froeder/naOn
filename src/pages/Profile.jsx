@@ -55,6 +55,20 @@ export default function Profile({ onOpenAuthModal }) {
       <div>
         <h1 className="text-2xl font-extrabold text-[#2C3E50] tracking-tight">
           Meu Perfil & Configurações
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt={user.displayName || 'Usuário'} className="w-full h-full object-cover rounded-2xl" />
+            ) : (
+              user?.displayName?.[0]?.toUpperCase() || 'G'
+            )}
+
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt={user.displayName || 'Usuário'} className="w-full h-full object-cover rounded-2xl" />
+            ) : (
+              user?.displayName?.[0]?.toUpperCase() || 'G'
+            )}
+
+
+
         </h1>
         <p className="text-xs text-slate-500">
           Gerencie seus dados pessoais, status do Firebase e backup da sua jornada.

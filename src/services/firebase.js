@@ -6,6 +6,7 @@ import {
   signOut,
   onAuthStateChanged,
   signInAnonymously,
+  sendPasswordResetEmail,
   updateProfile,
 } from 'firebase/auth';
 import {
@@ -71,6 +72,7 @@ export {
   signOut,
   onAuthStateChanged,
   signInAnonymously,
+  sendPasswordResetEmail,
   updateProfile,
   // Firestore helpers
   collection,

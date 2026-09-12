@@ -32,7 +32,10 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
   appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || '',
 };
+
+const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID?.trim() || undefined;
 
 // Verifica se as credenciais foram fornecidas
 export const isFirebaseConfigured = Boolean(
@@ -49,7 +52,7 @@ if (isFirebaseConfigured) {
   try {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
-    db = getFirestore(app);
+    db = getFirestore(app, databaseId);
     console.log('✅ Firebase inicializado com sucesso.');
   } catch (error) {
     console.warn('⚠️ Erro ao inicializar Firebase real, alternando para modo local offline:', error);

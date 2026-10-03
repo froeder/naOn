@@ -48,7 +48,9 @@ const getLocalData = async (key, defaultData) => {
   try {
     const raw = await AsyncStorage.getItem(key);
     if (!raw) {
-      await AsyncStorage.setItem(key, JSON.stringify(defaultData));
+      try {
+        await AsyncStorage.setItem(key, JSON.stringify(defaultData));
+      } catch {}
       return defaultData;
     }
     return JSON.parse(raw);
@@ -128,31 +130,31 @@ export const saveSubstance = async (userId, substance) => {
   return newSubstance;
 };
 
-export const resetSubstanceStreak = async (userIdOrSubstanceId, substanceIdOrReason, maybeReasonOrNotes, maybeNotes) => {
-  let userId, substanceId, reason, notes;
-  if (maybeNotes !== undefined || (typeof userIdOrSubstanceId === 'string' && userIdOrSubstanceId.startsWith('u_'))) {
-    userId = userIdOrSubstanceId;
-    substanceId = substanceIdOrReason;
-    reason = maybeReasonOrNotes;
-    notes = maybeNotes;
-  } else {
-    substanceId = userIdOrSubstanceId;
-    reason = substanceIdOrReason;
-    notes = maybeReasonOrNotes;
-    userId = null;
+export const resetSubstanceStreak = async (substanceId, reason, notes, userId) => {
+  let actualUserId = userId;
+  let actualSubId = substanceId;
+  let actualReason = reason;
+  let actualNotes = notes;
+
+  // Suporte a assinatura alternativa legada (userId, substanceId, reason, notes)
+  if (typeof substanceId === 'string' && typeof reason === 'string' && (substanceId.startsWith('u_') || substanceId.length > 25)) {
+    actualUserId = substanceId;
+    actualSubId = reason;
+    actualReason = notes;
+    actualNotes = userId;
   }
 
-  const key = userId ? `${STORAGE_KEYS.SUBSTANCES}_${userId}` : STORAGE_KEYS.SUBSTANCES;
+  const key = actualUserId ? `${STORAGE_KEYS.SUBSTANCES}_${actualUserId}` : STORAGE_KEYS.SUBSTANCES;
   const current = await getLocalData(key, INITIAL_SUBSTANCES);
 
   const resetRecord = {
     resetAt: new Date().toISOString(),
-    reason: reason || 'Não especificado',
-    notes: notes || '',
+    reason: actualReason || 'Não especificado',
+    notes: actualNotes || '',
   };
 
   const updated = current.map((sub) => {
-    if (sub.id === substanceId) {
+    if (sub.id === actualSubId) {
       return {
         ...sub,
         startDate: new Date().toISOString(),
@@ -166,11 +168,11 @@ export const resetSubstanceStreak = async (userIdOrSubstanceId, substanceIdOrRea
   notifyListeners('substances', updated);
   notifyListeners('substance_reset', updated);
 
-  if (isFirebaseConfigured && db && userId) {
+  if (isFirebaseConfigured && db && actualUserId) {
     try {
-      const target = updated.find((s) => s.id === substanceId);
+      const target = updated.find((s) => s.id === actualSubId);
       if (target) {
-        const docRef = doc(db, 'users', userId, 'substances', substanceId);
+        const docRef = doc(db, 'users', actualUserId, 'substances', actualSubId);
         await setDoc(docRef, target, { merge: true });
       }
     } catch (e) {
@@ -181,27 +183,25 @@ export const resetSubstanceStreak = async (userIdOrSubstanceId, substanceIdOrRea
   return updated;
 };
 
-export const deleteSubstance = async (userIdOrSubstanceId, maybeSubstanceId) => {
-  let userId, substanceId;
-  if (maybeSubstanceId) {
-    userId = userIdOrSubstanceId;
-    substanceId = maybeSubstanceId;
-  } else {
-    substanceId = userIdOrSubstanceId;
-    userId = null;
+export const deleteSubstance = async (substanceId, userId) => {
+  let actualSubId = substanceId;
+  let actualUserId = userId;
+  if (userId && !substanceId) {
+    actualSubId = userId;
+    actualUserId = null;
   }
 
-  const key = userId ? `${STORAGE_KEYS.SUBSTANCES}_${userId}` : STORAGE_KEYS.SUBSTANCES;
+  const key = actualUserId ? `${STORAGE_KEYS.SUBSTANCES}_${actualUserId}` : STORAGE_KEYS.SUBSTANCES;
   const current = await getLocalData(key, INITIAL_SUBSTANCES);
-  const updated = current.filter((s) => s.id !== substanceId);
+  const updated = current.filter((s) => s.id !== actualSubId);
 
   await setLocalData(key, updated);
   notifyListeners('substances', updated);
   notifyListeners('substance_deleted', updated);
 
-  if (isFirebaseConfigured && db && userId) {
+  if (isFirebaseConfigured && db && actualUserId) {
     try {
-      const docRef = doc(db, 'users', userId, 'substances', substanceId);
+      const docRef = doc(db, 'users', actualUserId, 'substances', actualSubId);
       await deleteDoc(docRef);
     } catch (e) {
       console.warn('Erro ao deletar no Firestore:', e.message);
@@ -231,13 +231,21 @@ export const fetchPosts = async () => {
 };
 
 export const createPost = async (postData) => {
+  const authorName = postData.authorName || postData.author || 'Guerreiro(a) Anônimo(a)';
   const newPost = {
     ...postData,
-    id: `post_${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    timeAgo: 'agora mesmo',
+    id: postData.id || `post_${Date.now()}`,
+    author: authorName,
+    authorName: authorName,
+    authorStreak: postData.authorStreak || 'Em recuperação',
+    avatar: postData.avatar || authorName.charAt(0).toUpperCase(),
+    avatarSeed: postData.avatarSeed || authorName,
+    createdAt: postData.createdAt || new Date().toISOString(),
+    timeAgo: postData.timeAgo || 'agora mesmo',
     likesCount: 0,
+    likes: 0,
     likedByMe: false,
+    isLiked: false,
     commentsCount: 0,
     comments: [],
   };
@@ -263,11 +271,16 @@ export const toggleLikePost = async (postId) => {
   const current = await getLocalData(STORAGE_KEYS.POSTS, INITIAL_POSTS);
   const updated = current.map((post) => {
     if (post.id === postId) {
-      const liked = !post.likedByMe;
+      const currentlyLiked = Boolean(post.likedByMe ?? post.isLiked);
+      const newLiked = !currentlyLiked;
+      const currentLikes = post.likesCount ?? post.likes ?? 0;
+      const newCount = newLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
       return {
         ...post,
-        likedByMe: liked,
-        likesCount: liked ? (post.likesCount || 0) + 1 : Math.max(0, (post.likesCount || 1) - 1),
+        likedByMe: newLiked,
+        isLiked: newLiked,
+        likesCount: newCount,
+        likes: newCount,
       };
     }
     return post;
@@ -394,8 +407,8 @@ export const storeService = {
   // Substâncias
   getSubstances: (userId) => fetchSubstances(userId),
   addSubstance: (substance, userId) => saveSubstance(userId, substance),
-  resetSubstance: (substanceId, reason, notes, userId) => resetSubstanceStreak(userId, substanceId, reason, notes),
-  deleteSubstance: (substanceId, userId) => deleteSubstance(userId, substanceId),
+  resetSubstance: (substanceId, reason, notes, userId) => resetSubstanceStreak(substanceId, reason, notes, userId),
+  deleteSubstance: (substanceId, userId) => deleteSubstance(substanceId, userId),
 
   // Sabedoria / Frase do Dia
   getDailyQuote: async () => {

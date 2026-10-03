@@ -25,7 +25,8 @@ function MainApp() {
     );
   }
 
-  if (!user && currentTab !== 'login') {
+  // Quando não há usuário logado (inclusive após logout), exibe a tela de login/boas-vindas
+  if (!user) {
     return <LoginPage onDone={() => setCurrentTab('dashboard')} />;
   }
 
@@ -46,7 +47,12 @@ function MainApp() {
         {currentTab === 'achievements' && <Achievements />}
         {currentTab === 'community' && <CommunityFeed />}
         {currentTab === 'profile' && <Profile onNavigateAuth={() => setCurrentTab('login')} />}
-        {currentTab === 'login' && <LoginPage onDone={() => setCurrentTab('dashboard')} />}
+        {currentTab === 'login' && (
+          <LoginPage
+            onDone={() => setCurrentTab('dashboard')}
+            onCancel={() => setCurrentTab('profile')}
+          />
+        )}
       </View>
 
       {currentTab !== 'login' && (
@@ -85,4 +91,3 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-

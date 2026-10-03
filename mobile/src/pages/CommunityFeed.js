@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, SafeAreaView, RefreshControl } from 'react-native';
-import { MessageSquare, Heart, Send, Sparkles, User, ShieldCheck, Flame } from 'lucide-react-native';
+import { MessageSquare, Heart, Send, Sparkles } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { storeService } from '../services/storeService';
 
-const TAGS = ['Todos', 'Vitória', 'Desabafo', 'Dica', 'Apoio'];
+const TAGS = ['Todos', 'Vitória', 'Superação', 'Desabafo', 'Dica', 'Apoio', 'Início de Jornada'];
+
+const formatPostTime = (post) => {
+  if (post.timeAgo) return post.timeAgo;
+  if (!post.createdAt || post.createdAt === 'Agora mesmo') return 'Agora mesmo';
+  try {
+    const d = new Date(post.createdAt);
+    if (isNaN(d.getTime())) return post.createdAt;
+    const diffMin = Math.floor((Date.now() - d.getTime()) / (1000 * 60));
+    if (diffMin < 1) return 'Agora mesmo';
+    if (diffMin < 60) return `há ${diffMin}m`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `há ${diffH}h`;
+    const diffDays = Math.floor(diffH / 24);
+    return `há ${diffDays}d`;
+  } catch {
+    return 'Recentemente';
+  }
+};
 
 export default function CommunityFeed() {
   const { user } = useAuth();
@@ -15,12 +33,21 @@ export default function CommunityFeed() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadPosts = async () => {
-    setPosts(await storeService.getCommunityPosts());
+    try {
+      const data = await storeService.getCommunityPosts();
+      setPosts(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.warn('Erro ao carregar posts:', e);
+    }
   };
 
   useEffect(() => {
     loadPosts();
-    return storeService.subscribe((e) => e === 'community_updated' && loadPosts());
+    return storeService.subscribe((e) => {
+      if (e === 'community_updated' || e === 'posts') {
+        loadPosts();
+      }
+    });
   }, []);
 
   const onRefresh = async () => {
@@ -35,17 +62,23 @@ export default function CommunityFeed() {
       return;
     }
 
+    const authorDisplayName = user?.displayName || 'Guerreiro(a) Anônimo(a)';
     const post = {
       id: `post_${Date.now()}`,
-      author: user?.displayName || 'Guerreiro Anônimo',
+      author: authorDisplayName,
+      authorName: authorDisplayName,
       authorStreak: 'Em recuperação',
-      avatar: user?.displayName?.charAt(0).toUpperCase() || 'G',
+      avatar: authorDisplayName.charAt(0).toUpperCase(),
       content: newContent.trim(),
       tag: postTag,
       likes: 0,
+      likesCount: 0,
       comments: 0,
-      createdAt: 'Agora mesmo',
+      commentsCount: 0,
+      createdAt: new Date().toISOString(),
+      timeAgo: 'Agora mesmo',
       isLiked: false,
+      likedByMe: false,
     };
 
     await storeService.addCommunityPost(post);
@@ -53,6 +86,25 @@ export default function CommunityFeed() {
   };
 
   const handleToggleLike = async (postId) => {
+    // Atualização otimista
+    setPosts((prevPosts) =>
+      prevPosts.map((p) => {
+        if (p.id === postId) {
+          const currentlyLiked = Boolean(p.likedByMe ?? p.isLiked);
+          const newLiked = !currentlyLiked;
+          const currentLikes = p.likesCount ?? p.likes ?? 0;
+          const newCount = newLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+          return {
+            ...p,
+            likedByMe: newLiked,
+            isLiked: newLiked,
+            likesCount: newCount,
+            likes: newCount,
+          };
+        }
+        return p;
+      })
+    );
     await storeService.toggleLikePost(postId);
   };
 
@@ -86,7 +138,7 @@ export default function CommunityFeed() {
 
           <View style={styles.createFooter}>
             <View style={styles.tagSelector}>
-              {['Vitória', 'Desabafo', 'Dica'].map((t) => (
+              {['Vitória', 'Superação', 'Desabafo', 'Dica'].map((t) => (
                 <TouchableOpacity
                   key={t}
                   style={[styles.smallTag, postTag === t && styles.smallTagActive]}
@@ -119,37 +171,58 @@ export default function CommunityFeed() {
 
         {/* Post cards */}
         <View style={styles.postList}>
-          {filteredPosts.map((post) => (
-            <View key={post.id} style={styles.postCard}>
-              <View style={styles.postHeader}>
-                <View style={styles.avatarCircle}>
-                  <Text style={styles.avatarText}>{post.avatar || 'A'}</Text>
-                </View>
-                <View style={styles.authorInfo}>
-                  <Text style={styles.authorName}>{post.author}</Text>
-                  <Text style={styles.authorStreak}>{post.authorStreak} • {post.createdAt}</Text>
-                </View>
-                <View style={styles.postTagBadge}>
-                  <Text style={styles.postTagText}>{post.tag}</Text>
-                </View>
-              </View>
-
-              <Text style={styles.postBody}>{post.content}</Text>
-
-              <View style={styles.postActions}>
-                <TouchableOpacity
-                  style={[styles.likeBtn, post.isLiked && styles.likeBtnActive]}
-                  onPress={() => handleToggleLike(post.id)}
-                  activeOpacity={0.7}
-                >
-                  <Heart size={15} color={post.isLiked ? '#EF4444' : '#64748B'} fill={post.isLiked ? '#EF4444' : 'none'} />
-                  <Text style={[styles.likeCount, post.isLiked && styles.likeCountActive]}>
-                    {post.likes} Apoios
-                  </Text>
-                </TouchableOpacity>
-              </View>
+          {filteredPosts.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <MessageSquare size={32} color="#94A3B8" />
+              <Text style={styles.emptyTitle}>Nenhuma publicação com essa tag</Text>
+              <Text style={styles.emptySubtitle}>Seja o primeiro a compartilhar uma palavra de força e superação!</Text>
             </View>
-          ))}
+          ) : (
+            filteredPosts.map((post) => {
+              const authorName = post.authorName || post.author || 'Membro do naOn';
+              const avatar = post.avatar || authorName.charAt(0).toUpperCase() || 'M';
+              const authorStreak = post.authorStreak || 'Em recuperação';
+              const isLiked = Boolean(post.likedByMe ?? post.isLiked);
+              const likes = post.likesCount ?? post.likes ?? 0;
+              const tag = post.tag || 'Geral';
+
+              return (
+                <View key={post.id} style={styles.postCard}>
+                  <View style={styles.postHeader}>
+                    <View style={styles.avatarCircle}>
+                      <Text style={styles.avatarText}>{avatar}</Text>
+                    </View>
+                    <View style={styles.authorInfo}>
+                      <Text style={styles.authorName}>{authorName}</Text>
+                      <Text style={styles.authorStreak}>{authorStreak} • {formatPostTime(post)}</Text>
+                    </View>
+                    <View style={styles.postTagBadge}>
+                      <Text style={styles.postTagText}>{tag}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.postBody}>{post.content}</Text>
+
+                  <View style={styles.postActions}>
+                    <TouchableOpacity
+                      style={[styles.likeBtn, isLiked && styles.likeBtnActive]}
+                      onPress={() => handleToggleLike(post.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Heart
+                        size={15}
+                        color={isLiked ? '#EF4444' : '#64748B'}
+                        fill={isLiked ? '#EF4444' : 'transparent'}
+                      />
+                      <Text style={[styles.likeCount, isLiked && styles.likeCountActive]}>
+                        {likes} {likes === 1 ? 'Apoio' : 'Apoios'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -206,7 +279,10 @@ const styles = StyleSheet.create({
   },
   tagSelector: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 6,
+    flex: 1,
+    marginRight: 8,
   },
   smallTag: {
     backgroundColor: '#F1F5F9',
@@ -347,5 +423,26 @@ const styles = StyleSheet.create({
   likeCountActive: {
     color: '#EF4444',
     fontWeight: '700',
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 10,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#334155',
+    marginTop: 10,
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 4,
   },
 });

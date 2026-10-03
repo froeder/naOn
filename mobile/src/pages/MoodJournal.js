@@ -121,30 +121,33 @@ export default function MoodJournal() {
             <Text style={styles.emptyText}>Nenhum registro ainda.</Text>
           </View>
         ) : (
-          entries.map((item) => (
-            <View key={item.id} style={styles.entryCard}>
-              <View style={styles.entryTop}>
-                <View style={styles.entryMoodRow}>
-                  <Text style={styles.entryMoodIcon}>{getMood(item.mood).icon}</Text>
-                  <View>
-                    <Text style={styles.entryMoodLabel}>{getMood(item.mood).label}</Text>
-                    <Text style={styles.entryDate}>{new Date(item.date).toLocaleDateString('pt-BR')}</Text>
+          entries.map((item) => {
+            const moodObj = getMood(item.mood) || MOOD_OPTIONS[0];
+            return (
+              <View key={item.id} style={styles.entryCard}>
+                <View style={styles.entryTop}>
+                  <View style={styles.entryMoodRow}>
+                    <Text style={styles.entryMoodIcon}>{moodObj.icon}</Text>
+                    <View>
+                      <Text style={styles.entryMoodLabel}>{moodObj.label}</Text>
+                      <Text style={styles.entryDate}>{new Date(item.date).toLocaleDateString('pt-BR')}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.cravingPill}>
+                    <Text style={styles.cravingPillText}>Fissura: {item.cravingLevel ?? 1}/5</Text>
                   </View>
                 </View>
-                <View style={styles.cravingPill}>
-                  <Text style={styles.cravingPillText}>Fissura: {item.cravingLevel}/5</Text>
-                </View>
+                {item.triggers?.length > 0 && (
+                  <View style={styles.entryTagsRow}>
+                    {item.triggers.map((t) => (
+                      <View key={t} style={styles.entryTagBadge}><Text style={styles.entryTagText}>{t}</Text></View>
+                    ))}
+                  </View>
+                )}
+                {item.note ? <Text style={styles.entryNote}>"{item.note}"</Text> : null}
               </View>
-              {item.triggers?.length > 0 && (
-                <View style={styles.entryTagsRow}>
-                  {item.triggers.map((t) => (
-                    <View key={t} style={styles.entryTagBadge}><Text style={styles.entryTagText}>{t}</Text></View>
-                  ))}
-                </View>
-              )}
-              {item.note ? <Text style={styles.entryNote}>"{item.note}"</Text> : null}
-            </View>
-          ))
+            );
+          })
         )}
       </ScrollView>
     </SafeAreaView>

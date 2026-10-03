@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { Flame, Mail, Lock, User, ArrowRight, ShieldCheck } from 'lucide-react-native';
+import { Flame, Mail, Lock, User, ArrowRight, ShieldCheck, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 
-export default function LoginPage({ onDone }) {
+export default function LoginPage({ onDone, onCancel }) {
   const { login, register, loginGuest, mapAuthError } = useAuth();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [name, setName] = useState('');
@@ -55,6 +55,12 @@ export default function LoginPage({ onDone }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {onCancel && (
+          <TouchableOpacity style={styles.backBtn} onPress={onCancel} activeOpacity={0.7}>
+            <ArrowLeft size={18} color="#94A3B8" />
+            <Text style={styles.backBtnText}>Voltar ao App</Text>
+          </TouchableOpacity>
+        )}
         {/* Brand Header */}
         <View style={styles.header}>
           <View style={styles.logoBadge}>
@@ -170,6 +176,22 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: 'center',
     minHeight: '100%',
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 20,
+    alignSelf: 'flex-start',
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  backBtnText: {
+    color: '#94A3B8',
+    fontSize: 13,
+    fontWeight: '600',
   },
   header: {
     alignItems: 'center',

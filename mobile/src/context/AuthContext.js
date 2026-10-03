@@ -91,7 +91,7 @@ export function AuthProvider({ children }) {
   const loginWithEmail = async (email, password) => {
     if (!auth) throw new Error('Firebase Auth não configurado');
     const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-    await AsyncStorage.removeItem(GUEST_STORAGE_KEY);
+    try { await AsyncStorage.removeItem(GUEST_STORAGE_KEY); } catch {}
     const u = formatUserData(cred.user);
     setUser(u);
     return u;
@@ -118,7 +118,7 @@ export function AuthProvider({ children }) {
         console.warn('Erro ao salvar nome:', e);
       }
     }
-    await AsyncStorage.removeItem(GUEST_STORAGE_KEY);
+    try { await AsyncStorage.removeItem(GUEST_STORAGE_KEY); } catch {}
     const u = formatUserData(cred.user, name?.trim());
     setUser(u);
     return u;
@@ -131,7 +131,7 @@ export function AuthProvider({ children }) {
         try {
           await updateProfile(cred.user, { displayName: 'Visitante Anônimo' });
         } catch {}
-        await AsyncStorage.removeItem(GUEST_STORAGE_KEY);
+        try { await AsyncStorage.removeItem(GUEST_STORAGE_KEY); } catch {}
         const u = formatUserData(cred.user, 'Visitante Anônimo');
         setUser(u);
         return u;
@@ -146,7 +146,7 @@ export function AuthProvider({ children }) {
       displayName: 'Visitante Anônimo',
       email: null,
     };
-    await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(localGuest));
+    try { await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(localGuest)); } catch {}
     setUser(localGuest);
     return localGuest;
   };
@@ -157,7 +157,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem(GUEST_STORAGE_KEY);
+    try { await AsyncStorage.removeItem(GUEST_STORAGE_KEY); } catch {}
     if (auth && auth.currentUser) {
       try {
         await signOut(auth);
@@ -178,7 +178,7 @@ export function AuthProvider({ children }) {
       setUser((prev) => ({ ...prev, ...data }));
     } else if (user) {
       const updated = { ...user, ...data };
-      await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(updated));
+      try { await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(updated)); } catch {}
       setUser(updated);
     }
   };

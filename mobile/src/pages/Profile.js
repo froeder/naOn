@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, SafeAreaView } from 'react-native';
-import { User, LogOut, ShieldCheck, Trash2, Edit2, Check, RefreshCw, Heart } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, SafeAreaView, Platform } from 'react-native';
+import { User, LogOut, ShieldCheck, Trash2, Edit2, Check } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { storeService } from '../services/storeService';
 
@@ -17,6 +17,18 @@ export default function Profile({ onNavigateAuth }) {
   };
 
   const handleResetAllData = () => {
+    const doReset = async () => {
+      await storeService.clearAllData();
+      Alert.alert('Concluído', 'Dados restaurados para o padrão.');
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Tem certeza de que deseja apagar todos os rastreadores e histórico? Esta ação é irreversível.')) {
+        doReset();
+      }
+      return;
+    }
+
     Alert.alert(
       'Limpar todos os dados',
       'Tem certeza de que deseja apagar todos os rastreadores e histórico? Esta ação é irreversível.',
@@ -25,20 +37,46 @@ export default function Profile({ onNavigateAuth }) {
         {
           text: 'Apagar Tudo',
           style: 'destructive',
-          onPress: async () => {
-            await storeService.clearAllData();
-            Alert.alert('Concluído', 'Dados restaurados para o padrão.');
-          },
+          onPress: doReset,
         },
-      ]
+      ],
+      { cancelable: true }
     );
   };
 
   const handleLogout = () => {
-    Alert.alert('Sair da Conta', 'Deseja encerrar a sessão atual?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: () => logout() },
-    ]);
+    const performLogout = async () => {
+      try {
+        await logout();
+      } catch (err) {
+        console.warn('Erro ao sair:', err);
+      } finally {
+        if (onNavigateAuth) {
+          onNavigateAuth();
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Deseja realmente encerrar a sessão atual?')) {
+        performLogout();
+      }
+      return;
+    }
+
+    Alert.alert(
+      'Sair da Conta',
+      'Deseja realmente encerrar a sessão atual?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sair',
+          style: 'destructive',
+          onPress: performLogout,
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (
@@ -110,7 +148,7 @@ export default function Profile({ onNavigateAuth }) {
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
-          <LogOut size={18} color="#64748B" />
+          <LogOut size={18} color="#EF4444" />
           <Text style={styles.logoutBtnText}>Encerrar Sessão</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -276,11 +314,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#FECACA',
     marginBottom: 20,
   },
   logoutBtnText: {
-    color: '#64748B',
+    color: '#EF4444',
     fontSize: 13,
     fontWeight: '700',
   },

@@ -108,6 +108,34 @@ export default function Dashboard({ onOpenSOS }) {
             <Text style={styles.addBtnText}>Novo</Text>
           </TouchableOpacity>
         </View>
+        {substances.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>Nenhum rastreador ativo</Text>
+            <Text style={styles.emptyDesc}>Adicione o que deseja superar hoje!</Text>
+            <TouchableOpacity style={styles.emptyAddBtn} onPress={() => setShowAddModal(true)}>
+              <Plus size={15} color="#FFFFFF" />
+              <Text style={styles.emptyAddBtnText}>Criar Rastreador</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          substances.map((item) => (
+            <SubstanceCard key={item.id} substance={item} onReset={handleReset} onDelete={handleDelete} />
+          ))
+        )}
+
+        <TouchableOpacity style={styles.sosCard} onPress={onOpenSOS} activeOpacity={0.85}>
+          <View style={styles.sosIconBox}><ShieldAlert size={20} color="#FFFFFF" /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sosTitle}>Em crise ou fissura?</Text>
+            <Text style={styles.sosDesc}>Acesse o SOS: respiração guiada e linhas de apoio 24h.</Text>
+          </View>
+        </TouchableOpacity>
+      </ScrollView>
+
+      <AddSubstanceModal visible={showAddModal} onClose={() => setShowAddModal(false)} onSave={handleAddSubstance} />
+    </SafeAreaView>
+  );
+}
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -282,33 +310,3 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
-
-
-        {substances.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Nenhum rastreador ativo</Text>
-            <Text style={styles.emptyDesc}>Adicione o que deseja superar hoje!</Text>
-            <TouchableOpacity style={styles.emptyAddBtn} onPress={() => setShowAddModal(true)}>
-              <Plus size={15} color="#FFFFFF" />
-              <Text style={styles.emptyAddBtnText}>Criar Rastreador</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          substances.map((item) => (
-            <SubstanceCard key={item.id} substance={item} onReset={handleReset} onDelete={handleDelete} />
-          ))
-        )}
-
-        <TouchableOpacity style={styles.sosCard} onPress={onOpenSOS} activeOpacity={0.85}>
-          <View style={styles.sosIconBox}><ShieldAlert size={20} color="#FFFFFF" /></View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sosTitle}>Em crise ou fissura?</Text>
-            <Text style={styles.sosDesc}>Acesse o SOS: respiração guiada e linhas de apoio 24h.</Text>
-          </View>
-        </TouchableOpacity>
-      </ScrollView>
-
-      <AddSubstanceModal visible={showAddModal} onClose={() => setShowAddModal(false)} onSave={handleAddSubstance} />
-    </SafeAreaView>
-  );
-}

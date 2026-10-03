@@ -143,6 +143,21 @@ export default function AddSubstanceModal({ visible, onClose, onSave }) {
                 <TouchableOpacity
                   key={c}
                   style={[styles.colorCircle, { backgroundColor: c }, color === c && styles.colorSelected]}
+                  onPress={() => setColor(c)}
+                />
+              ))}
+            </View>
+
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
+              <Sparkles size={18} color="#FFFFFF" />
+              <Text style={styles.saveBtnText}>Começar a Rastrear</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 const styles = StyleSheet.create({
   overlay: {
@@ -269,19 +284,3 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 });
-
-                  onPress={() => setColor(c)}
-                />
-              ))}
-            </View>
-
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
-              <Sparkles size={18} color="#FFFFFF" />
-              <Text style={styles.saveBtnText}>Começar a Rastrear</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-}

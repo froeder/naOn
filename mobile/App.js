@@ -41,7 +41,7 @@ function MainApp() {
       )}
 
       <View style={styles.content}>
-        {currentTab === 'dashboard' && <Dashboard onOpenSOS={() => setShowSOSModal(true)} />}
+        {(currentTab === 'dashboard' || currentTab === 'home') && <Dashboard onOpenSOS={() => setShowSOSModal(true)} />}
         {currentTab === 'journal' && <MoodJournal />}
         {currentTab === 'achievements' && <Achievements />}
         {currentTab === 'community' && <CommunityFeed />}

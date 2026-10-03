@@ -136,6 +136,26 @@ export default function LoginPage({ onDone }) {
             ) : (
               <>
                 <Text style={styles.submitBtnText}>{isLoginMode ? 'Acessar Minha Conta' : 'Criar Conta'}</Text>
+                <ArrowRight size={16} color="#FFFFFF" />
+              </>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OU</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity style={styles.guestBtn} onPress={handleGuest} disabled={loading} activeOpacity={0.8}>
+            <ShieldCheck size={18} color="#475569" />
+            <Text style={styles.guestBtnText}>Continuar Anonimamente (Visitante)</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -293,24 +313,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-                <ArrowRight size={16} color="#FFFFFF" />
-              </>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OU</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity style={styles.guestBtn} onPress={handleGuest} disabled={loading} activeOpacity={0.8}>
-            <ShieldCheck size={18} color="#475569" />
-            <Text style={styles.guestBtnText}>Continuar Anonimamente (Visitante)</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}

@@ -104,6 +104,19 @@ export default function Profile({ onNavigateAuth }) {
 
           <TouchableOpacity style={styles.dangerBtn} onPress={handleResetAllData} activeOpacity={0.7}>
             <Trash2 size={18} color="#EF4444" />
+            <Text style={styles.dangerBtnText}>Resetar / Limpar todos os dados</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Logout */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
+          <LogOut size={18} color="#64748B" />
+          <Text style={styles.logoutBtnText}>Encerrar Sessão</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -272,17 +285,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-            <Text style={styles.dangerBtnText}>Resetar / Limpar todos os dados</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
-          <LogOut size={18} color="#64748B" />
-          <Text style={styles.logoutBtnText}>Encerrar Sessão</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}

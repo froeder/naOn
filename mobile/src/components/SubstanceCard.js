@@ -108,6 +108,16 @@ export default function SubstanceCard({ substance, onReset, onDelete }) {
 
       <ResetConfirmationModal
         visible={showResetModal}
+        substance={substance}
+        onClose={() => setShowResetModal(false)}
+        onConfirm={(reason, notes) => {
+          setShowResetModal(false);
+          onReset(substance.id, reason, notes);
+        }}
+      />
+    </>
+  );
+}
 
 const styles = StyleSheet.create({
   card: {
@@ -289,14 +299,3 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
 });
-
-        substance={substance}
-        onClose={() => setShowResetModal(false)}
-        onConfirm={(reason, notes) => {
-          setShowResetModal(false);
-          onReset(substance.id, reason, notes);
-        }}
-      />
-    </>
-  );
-}

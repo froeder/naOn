@@ -83,6 +83,21 @@ export default function Achievements() {
                       </View>
                     ) : (
                       <View style={styles.statusLocked}>
+                        <Lock size={12} color="#94A3B8" />
+                        <Text style={styles.statusLockedText}>Faltam {remaining}d</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.cardDesc}>{m.description}</Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -188,6 +203,7 @@ const styles = StyleSheet.create({
   },
   badgeBoxUnlocked: {
     backgroundColor: '#E8F8F0',
+    borderColor: '#27AE60',
   },
   badgeBoxLocked: {
     backgroundColor: '#F1F5F9',
@@ -237,19 +253,3 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
-
-                        <Lock size={12} color="#94A3B8" />
-                        <Text style={styles.statusLockedText}>Faltam {remaining}d</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.cardDesc}>{m.description}</Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}

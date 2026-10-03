@@ -97,6 +97,27 @@ export default function SOSModal({ visible, onClose }) {
                 <Animated.View style={[styles.breathCircle, { transform: [{ scale: scaleAnim }] }]}>
                   <Text style={styles.circlePhaseText}>{breathPhase}</Text>
                 </Animated.View>
+                <TouchableOpacity
+                  style={[styles.toggleBreatheBtn, isBreathing ? styles.stopBreathe : styles.startBreathe]}
+                  onPress={() => setIsBreathing(!isBreathing)}
+                >
+                  <Text style={styles.toggleBreatheText}>{isBreathing ? 'Pausar' : 'Iniciar Respiração'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {activeTab === 'tips' && COPING_EXERCISES.map((ex) => (
+              <View key={ex.id} style={styles.exerciseCard}>
+                <Text style={styles.exerciseTitle}>{ex.title} ({ex.duration})</Text>
+                <Text style={styles.exerciseDesc}>{ex.description}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 const styles = StyleSheet.create({
   overlay: {
@@ -261,25 +282,3 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
-
-                <TouchableOpacity
-                  style={[styles.toggleBreatheBtn, isBreathing ? styles.stopBreathe : styles.startBreathe]}
-                  onPress={() => setIsBreathing(!isBreathing)}
-                >
-                  <Text style={styles.toggleBreatheText}>{isBreathing ? 'Pausar' : 'Iniciar Respiração'}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {activeTab === 'tips' && COPING_EXERCISES.map((ex) => (
-              <View key={ex.id} style={styles.exerciseCard}>
-                <Text style={styles.exerciseTitle}>{ex.title} ({ex.duration})</Text>
-                <Text style={styles.exerciseDesc}>{ex.description}</Text>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-}

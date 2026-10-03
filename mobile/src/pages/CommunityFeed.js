@@ -119,6 +119,42 @@ export default function CommunityFeed() {
 
         {/* Post cards */}
         <View style={styles.postList}>
+          {filteredPosts.map((post) => (
+            <View key={post.id} style={styles.postCard}>
+              <View style={styles.postHeader}>
+                <View style={styles.avatarCircle}>
+                  <Text style={styles.avatarText}>{post.avatar || 'A'}</Text>
+                </View>
+                <View style={styles.authorInfo}>
+                  <Text style={styles.authorName}>{post.author}</Text>
+                  <Text style={styles.authorStreak}>{post.authorStreak} • {post.createdAt}</Text>
+                </View>
+                <View style={styles.postTagBadge}>
+                  <Text style={styles.postTagText}>{post.tag}</Text>
+                </View>
+              </View>
+
+              <Text style={styles.postBody}>{post.content}</Text>
+
+              <View style={styles.postActions}>
+                <TouchableOpacity
+                  style={[styles.likeBtn, post.isLiked && styles.likeBtnActive]}
+                  onPress={() => handleToggleLike(post.id)}
+                  activeOpacity={0.7}
+                >
+                  <Heart size={15} color={post.isLiked ? '#EF4444' : '#64748B'} fill={post.isLiked ? '#EF4444' : 'none'} />
+                  <Text style={[styles.likeCount, post.isLiked && styles.likeCountActive]}>
+                    {post.likes} Apoios
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -313,40 +349,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-          {filteredPosts.map((post) => (
-            <View key={post.id} style={styles.postCard}>
-              <View style={styles.postHeader}>
-                <View style={styles.avatarCircle}>
-                  <Text style={styles.avatarText}>{post.avatar || 'A'}</Text>
-                </View>
-                <View style={styles.authorInfo}>
-                  <Text style={styles.authorName}>{post.author}</Text>
-                  <Text style={styles.authorStreak}>{post.authorStreak} • {post.createdAt}</Text>
-                </View>
-                <View style={styles.postTagBadge}>
-                  <Text style={styles.postTagText}>{post.tag}</Text>
-                </View>
-              </View>
-
-              <Text style={styles.postBody}>{post.content}</Text>
-
-              <View style={styles.postActions}>
-                <TouchableOpacity
-                  style={[styles.likeBtn, post.isLiked && styles.likeBtnActive]}
-                  onPress={() => handleToggleLike(post.id)}
-                  activeOpacity={0.7}
-                >
-                  <Heart size={15} color={post.isLiked ? '#EF4444' : '#64748B'} fill={post.isLiked ? '#EF4444' : 'none'} />
-                  <Text style={[styles.likeCount, post.isLiked && styles.likeCountActive]}>
-                    {post.likes} Apoios
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}

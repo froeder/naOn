@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Home, BookOpen, Users, Award, User } from 'lucide-react-native';
 
 const TABS = [
-  { id: 'home', label: 'Início', icon: Home },
+  { id: 'dashboard', label: 'Início', icon: Home },
   { id: 'journal', label: 'Diário', icon: BookOpen },
   { id: 'community', label: 'Comunidade', icon: Users },
   { id: 'achievements', label: 'Conquistas', icon: Award },

@@ -16,6 +16,7 @@ import {
   INITIAL_SUBSTANCES,
   INITIAL_POSTS,
   INITIAL_MOODS,
+  MOTIVATIONAL_QUOTES,
 } from './mockData';
 
 const STORAGE_KEYS = {
@@ -28,7 +29,13 @@ const STORAGE_KEYS = {
 // Event emitter para reatividade local
 const listeners = new Set();
 const notifyListeners = (type, payload) => {
-  listeners.forEach(fn => fn(type, payload));
+  listeners.forEach((fn) => {
+    try {
+      fn(type, payload);
+    } catch (e) {
+      console.warn('Erro ao notificar listener:', e);
+    }
+  });
 };
 
 export const subscribeToStoreChanges = (callback) => {
@@ -69,7 +76,7 @@ export const fetchSubstances = async (userId) => {
       const colRef = collection(db, 'users', userId, 'substances');
       const snap = await getDocs(colRef);
       if (!snap.empty) {
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       }
     } catch (e) {
       console.warn('Firestore indisponível, usando armazenamento local:', e.message);
@@ -81,28 +88,37 @@ export const fetchSubstances = async (userId) => {
 };
 
 export const saveSubstance = async (userId, substance) => {
-  const isNew = !substance.id;
+  // Trata caso onde userId não é passado ou substance é o primeiro parâmetro
+  let actualSubstance = substance;
+  let actualUserId = userId;
+  if (typeof userId === 'object' && !substance) {
+    actualSubstance = userId;
+    actualUserId = null;
+  }
+
+  const isNew = !actualSubstance.id;
   const newSubstance = {
-    ...substance,
-    id: substance.id || `sub_${Date.now()}`,
-    createdAt: substance.createdAt || new Date().toISOString(),
-    history: substance.history || [],
+    ...actualSubstance,
+    id: actualSubstance.id || `sub_${Date.now()}`,
+    createdAt: actualSubstance.createdAt || new Date().toISOString(),
+    history: actualSubstance.history || [],
   };
 
-  const key = userId ? `${STORAGE_KEYS.SUBSTANCES}_${userId}` : STORAGE_KEYS.SUBSTANCES;
+  const key = actualUserId ? `${STORAGE_KEYS.SUBSTANCES}_${actualUserId}` : STORAGE_KEYS.SUBSTANCES;
   const current = await getLocalData(key, INITIAL_SUBSTANCES);
   let updated;
   if (isNew) {
     updated = [newSubstance, ...current];
   } else {
-    updated = current.map(s => (s.id === newSubstance.id ? newSubstance : s));
+    updated = current.map((s) => (s.id === newSubstance.id ? newSubstance : s));
   }
   await setLocalData(key, updated);
   notifyListeners('substances', updated);
+  notifyListeners('substance_added', newSubstance);
 
-  if (isFirebaseConfigured && db && userId) {
+  if (isFirebaseConfigured && db && actualUserId) {
     try {
-      const docRef = doc(db, 'users', userId, 'substances', newSubstance.id);
+      const docRef = doc(db, 'users', actualUserId, 'substances', newSubstance.id);
       await setDoc(docRef, newSubstance, { merge: true });
     } catch (e) {
       console.warn('Erro ao sincronizar substância no Firestore:', e.message);
@@ -112,7 +128,20 @@ export const saveSubstance = async (userId, substance) => {
   return newSubstance;
 };
 
-export const resetSubstanceStreak = async (userId, substanceId, reason = '', notes = '') => {
+export const resetSubstanceStreak = async (userIdOrSubstanceId, substanceIdOrReason, maybeReasonOrNotes, maybeNotes) => {
+  let userId, substanceId, reason, notes;
+  if (maybeNotes !== undefined || (typeof userIdOrSubstanceId === 'string' && userIdOrSubstanceId.startsWith('u_'))) {
+    userId = userIdOrSubstanceId;
+    substanceId = substanceIdOrReason;
+    reason = maybeReasonOrNotes;
+    notes = maybeNotes;
+  } else {
+    substanceId = userIdOrSubstanceId;
+    reason = substanceIdOrReason;
+    notes = maybeReasonOrNotes;
+    userId = null;
+  }
+
   const key = userId ? `${STORAGE_KEYS.SUBSTANCES}_${userId}` : STORAGE_KEYS.SUBSTANCES;
   const current = await getLocalData(key, INITIAL_SUBSTANCES);
 
@@ -135,10 +164,11 @@ export const resetSubstanceStreak = async (userId, substanceId, reason = '', not
 
   await setLocalData(key, updated);
   notifyListeners('substances', updated);
+  notifyListeners('substance_reset', updated);
 
   if (isFirebaseConfigured && db && userId) {
     try {
-      const target = updated.find(s => s.id === substanceId);
+      const target = updated.find((s) => s.id === substanceId);
       if (target) {
         const docRef = doc(db, 'users', userId, 'substances', substanceId);
         await setDoc(docRef, target, { merge: true });
@@ -151,8 +181,38 @@ export const resetSubstanceStreak = async (userId, substanceId, reason = '', not
   return updated;
 };
 
+export const deleteSubstance = async (userIdOrSubstanceId, maybeSubstanceId) => {
+  let userId, substanceId;
+  if (maybeSubstanceId) {
+    userId = userIdOrSubstanceId;
+    substanceId = maybeSubstanceId;
+  } else {
+    substanceId = userIdOrSubstanceId;
+    userId = null;
+  }
+
+  const key = userId ? `${STORAGE_KEYS.SUBSTANCES}_${userId}` : STORAGE_KEYS.SUBSTANCES;
+  const current = await getLocalData(key, INITIAL_SUBSTANCES);
+  const updated = current.filter((s) => s.id !== substanceId);
+
+  await setLocalData(key, updated);
+  notifyListeners('substances', updated);
+  notifyListeners('substance_deleted', updated);
+
+  if (isFirebaseConfigured && db && userId) {
+    try {
+      const docRef = doc(db, 'users', userId, 'substances', substanceId);
+      await deleteDoc(docRef);
+    } catch (e) {
+      console.warn('Erro ao deletar no Firestore:', e.message);
+    }
+  }
+
+  return updated;
+};
+
 // ==========================================
-// 2. COMUNIDADE (POSTS & PARTILHAS)
+// 2. COMUNIDADE (POSTS & FEED)
 // ==========================================
 
 export const fetchPosts = async () => {
@@ -161,7 +221,7 @@ export const fetchPosts = async () => {
       const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       if (!snap.empty) {
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       }
     } catch (e) {
       console.warn('Firestore posts indisponível, usando armazenamento local:', e.message);
@@ -186,6 +246,7 @@ export const createPost = async (postData) => {
   const updated = [newPost, ...current];
   await setLocalData(STORAGE_KEYS.POSTS, updated);
   notifyListeners('posts', updated);
+  notifyListeners('community_updated', updated);
 
   if (isFirebaseConfigured && db) {
     try {
@@ -200,7 +261,7 @@ export const createPost = async (postData) => {
 
 export const toggleLikePost = async (postId) => {
   const current = await getLocalData(STORAGE_KEYS.POSTS, INITIAL_POSTS);
-  const updated = current.map(post => {
+  const updated = current.map((post) => {
     if (post.id === postId) {
       const liked = !post.likedByMe;
       return {
@@ -214,6 +275,7 @@ export const toggleLikePost = async (postId) => {
 
   await setLocalData(STORAGE_KEYS.POSTS, updated);
   notifyListeners('posts', updated);
+  notifyListeners('community_updated', updated);
   return updated;
 };
 
@@ -226,7 +288,7 @@ export const addCommentToPost = async (postId, comment) => {
     timeAgo: 'agora mesmo',
   };
 
-  const updated = current.map(post => {
+  const updated = current.map((post) => {
     if (post.id === postId) {
       const comments = [newComment, ...(post.comments || [])];
       return {
@@ -240,6 +302,7 @@ export const addCommentToPost = async (postId, comment) => {
 
   await setLocalData(STORAGE_KEYS.POSTS, updated);
   notifyListeners('posts', updated);
+  notifyListeners('community_updated', updated);
   return newComment;
 };
 
@@ -253,7 +316,7 @@ export const fetchMoods = async (userId) => {
       const colRef = collection(db, 'users', userId, 'moods');
       const snap = await getDocs(colRef);
       if (!snap.empty) {
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       }
     } catch (e) {
       console.warn('Firestore moods indisponível, usando armazenamento local:', e.message);
@@ -264,7 +327,16 @@ export const fetchMoods = async (userId) => {
   return await getLocalData(key, INITIAL_MOODS);
 };
 
-export const saveMoodEntry = async (userId, moodEntry) => {
+export const saveMoodEntry = async (userIdOrEntry, maybeEntry) => {
+  let userId, moodEntry;
+  if (maybeEntry) {
+    userId = userIdOrEntry;
+    moodEntry = maybeEntry;
+  } else {
+    moodEntry = userIdOrEntry;
+    userId = null;
+  }
+
   const newEntry = {
     ...moodEntry,
     id: moodEntry.id || `mood_${Date.now()}`,
@@ -277,6 +349,7 @@ export const saveMoodEntry = async (userId, moodEntry) => {
 
   await setLocalData(key, updated);
   notifyListeners('moods', updated);
+  notifyListeners('journal_updated', updated);
 
   if (isFirebaseConfigured && db && userId) {
     try {
@@ -313,23 +386,49 @@ export const saveUserProfile = async (userId, data) => {
   return updated;
 };
 
+// ==========================================
+// 5. OBJETO CONSOLIDADO STORESERVICE
+// ==========================================
 
-export const deleteSubstance = async (userId, substanceId) => {
-  const key = userId ? `${STORAGE_KEYS.SUBSTANCES}_${userId}` : STORAGE_KEYS.SUBSTANCES;
-  const current = await getLocalData(key, INITIAL_SUBSTANCES);
-  const updated = current.filter(s => s.id !== substanceId);
+export const storeService = {
+  // Substâncias
+  getSubstances: (userId) => fetchSubstances(userId),
+  addSubstance: (substance, userId) => saveSubstance(userId, substance),
+  resetSubstance: (substanceId, reason, notes, userId) => resetSubstanceStreak(userId, substanceId, reason, notes),
+  deleteSubstance: (substanceId, userId) => deleteSubstance(userId, substanceId),
 
-  await setLocalData(key, updated);
-  notifyListeners('substances', updated);
+  // Sabedoria / Frase do Dia
+  getDailyQuote: async () => {
+    const today = new Date();
+    const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+    const quotes = Array.isArray(MOTIVATIONAL_QUOTES) && MOTIVATIONAL_QUOTES.length > 0
+      ? MOTIVATIONAL_QUOTES
+      : [{ text: 'Só por hoje, um dia de cada vez.', author: 'naOn' }];
+    return quotes[Math.abs(dayOfYear) % quotes.length];
+  },
 
-  if (isFirebaseConfigured && db && userId) {
-    try {
-      const docRef = doc(db, 'users', userId, 'substances', substanceId);
-      await deleteDoc(docRef);
-    } catch (e) {
-      console.warn('Erro ao deletar no Firestore:', e.message);
-    }
-  }
+  // Diário
+  getJournalEntries: (userId) => fetchMoods(userId),
+  addJournalEntry: (entry, userId) => saveMoodEntry(userId, entry),
 
-  return updated;
+  // Comunidade
+  getCommunityPosts: () => fetchPosts(),
+  addCommunityPost: (post) => createPost(post),
+  toggleLikePost: (postId) => toggleLikePost(postId),
+
+  // Reset geral
+  clearAllData: async () => {
+    await AsyncStorage.removeItem(STORAGE_KEYS.SUBSTANCES);
+    await AsyncStorage.removeItem(STORAGE_KEYS.POSTS);
+    await AsyncStorage.removeItem(STORAGE_KEYS.MOODS);
+    await AsyncStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
+    notifyListeners('substances', INITIAL_SUBSTANCES);
+    notifyListeners('substance_deleted', INITIAL_SUBSTANCES);
+    notifyListeners('journal_updated', INITIAL_MOODS);
+    notifyListeners('community_updated', INITIAL_POSTS);
+    return true;
+  },
+
+  // Inscrição reativa
+  subscribe: (callback) => subscribeToStoreChanges(callback),
 };

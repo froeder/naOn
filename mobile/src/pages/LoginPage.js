@@ -4,7 +4,7 @@ import { Flame, Mail, Lock, User, ArrowRight, ShieldCheck } from 'lucide-react-n
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage({ onDone }) {
-  const { login, register, loginGuest } = useAuth();
+  const { login, register, loginGuest, mapAuthError } = useAuth();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -32,17 +32,21 @@ export default function LoginPage({ onDone }) {
       }
       if (onDone) onDone();
     } catch (err) {
-      setErrorMessage(err.message || 'Ocorreu um erro na autenticação.');
+      const friendly = mapAuthError ? mapAuthError(err.code || err.message) : (err.message || 'Ocorreu um erro na autenticação.');
+      setErrorMessage(friendly);
     } finally {
       setLoading(false);
     }
   };
 
   const handleGuest = async () => {
+    setErrorMessage('');
     setLoading(true);
     try {
       await loginGuest();
       if (onDone) onDone();
+    } catch (err) {
+      setErrorMessage('Erro ao acessar como visitante.');
     } finally {
       setLoading(false);
     }

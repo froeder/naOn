@@ -63,7 +63,7 @@ export default function Achievements() {
             const remaining = m.days - maxCleanDays;
             return (
               <View
-                key={m.id}
+                key={m.days || m.title}
                 style={[
                   styles.card,
                   isUnlocked ? styles.unlockedCard : styles.lockedCard

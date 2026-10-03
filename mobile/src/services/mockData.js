@@ -71,7 +71,9 @@ export const INITIAL_POSTS = [
     likesCount: 45,
     likedByMe: false,
     commentsCount: 0,
-
+    comments: [],
+  },
+];
 
 export const INITIAL_MOODS = [
   {
@@ -181,6 +183,23 @@ export const COPING_EXERCISES = [
   }
 ];
 
-    comments: []
-  }
+export const MOOD_OPTIONS = [
+  { id: 'great', label: 'Radiante', icon: '😄', color: '#27AE60' },
+  { id: 'good', label: 'Bem', icon: '🙂', color: '#2ECC71' },
+  { id: 'anxious', label: 'Ansioso', icon: '😰', color: '#F39C12' },
+  { id: 'tired', label: 'Cansado', icon: '🥱', color: '#3498DB' },
+  { id: 'sad', label: 'Triste', icon: '😔', color: '#9B59B6' },
+  { id: 'craving', label: 'Fissura', icon: '⚡', color: '#E74C3C' },
+];
+
+export const TRIGGER_TAGS = [
+  'Estresse',
+  'Trabalho',
+  'Solidão',
+  'Cansaço',
+  'Tédio',
+  'Conflito',
+  'Festa / Social',
+  'Fim de semana',
+  'Outro',
 ];

@@ -10,6 +10,7 @@ import {
   updateProfile,
 } from '../services/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { performGoogleSignIn, performGoogleSignOut } from '../services/googleAuth';
 
 const AuthContext = createContext({});
 
@@ -52,6 +53,18 @@ export const mapAuthError = (codeOrMessage) => {
   }
   if (text.includes('auth/operation-not-allowed')) {
     return 'Método de login não ativado no Firebase Console.';
+  }
+  if (text.includes('auth/popup-closed-by-user') || text.includes('user-cancelled') || text.includes('cancelado')) {
+    return 'Login com o Google cancelado.';
+  }
+  if (text.includes('auth/cancelled-popup-request')) {
+    return 'Apenas uma janela de login pode estar aberta por vez.';
+  }
+  if (text.includes('auth/account-exists-with-different-credential')) {
+    return 'Já existe uma conta com este e-mail vinculada a outro método.';
+  }
+  if (text.includes('auth/unauthorized-domain')) {
+    return 'Domínio não autorizado no Firebase Console para login com Google.';
   }
   return 'Ocorreu um erro na autenticação. Verifique os dados.';
 };
@@ -151,6 +164,14 @@ export function AuthProvider({ children }) {
     return localGuest;
   };
 
+  const loginWithGoogle = async () => {
+    const googleUser = await performGoogleSignIn();
+    try { await AsyncStorage.removeItem(GUEST_STORAGE_KEY); } catch {}
+    const u = formatUserData(googleUser);
+    setUser(u);
+    return u;
+  };
+
   const resetPassword = async (email) => {
     if (!auth) throw new Error('Firebase Auth não configurado');
     return await sendPasswordResetEmail(auth, email.trim());
@@ -158,6 +179,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try { await AsyncStorage.removeItem(GUEST_STORAGE_KEY); } catch {}
+    try { await performGoogleSignOut(); } catch {}
     if (auth && auth.currentUser) {
       try {
         await signOut(auth);
@@ -192,6 +214,7 @@ export function AuthProvider({ children }) {
         loginWithEmail,
         register: registerWithEmail,
         registerWithEmail,
+        loginWithGoogle,
         loginGuest: loginAnonymously,
         loginAnonymously,
         resetPassword,

@@ -10,6 +10,8 @@ import {
   signInAnonymously,
   sendPasswordResetEmail,
   updateProfile,
+  GoogleAuthProvider,
+  signInWithCredential,
 } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -88,6 +90,8 @@ export {
   signInAnonymously,
   sendPasswordResetEmail,
   updateProfile,
+  GoogleAuthProvider,
+  signInWithCredential,
   collection,
   doc,
   getDocs,
